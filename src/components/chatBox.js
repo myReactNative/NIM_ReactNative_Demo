@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
-import { Icon, Button } from 'react-native-elements';
+import { View, TextInput, TouchableOpacity, KeyboardAvoidingView, InteractionManager } from 'react-native';
+import { Icon } from 'react-native-elements';
 import ImagePicker from 'react-native-image-picker';
-import RNFS from 'react-native-fs';
+import ChatAudio from './chatAudio';
 import { chatStyle } from '../themes';
 import ChatEmoji from './chatEmoji';
 import { RVW, RFT } from '../common';
-import MD5 from '../util/md5';
+import uuid from '../util/uuid';
 
 export const ChatItem = (props) => {
   const typeMap = {
@@ -22,7 +22,6 @@ export const ChatItem = (props) => {
     </TouchableOpacity>
   );
 };
-
 
 export class ChatBox extends React.Component {
   static defaultProps = {
@@ -40,10 +39,40 @@ export class ChatBox extends React.Component {
       isExtraShown: false,
       isEmojiShown: false,
     };
-    this.scrollTimer = null;
+    this._scrollTimer = null;
   }
   componentWillUnmount() {
-    clearTimeout(this.scrollTimer);
+    clearTimeout(this._scrollTimer);
+  }
+  showVoice = () => {
+    this.setState({
+      isTextMsg: false,
+      isExtraShown: false,
+      isEmojiShown: false,
+    });
+  }
+  hideVoice = () => {
+    this.setState({
+      isTextMsg: true,
+
+    });
+  }
+  showEmoji = (isEmoji = false) => {
+    this.inputText.blur();
+    this.setState({
+      isEmojiShown: isEmoji,
+      isExtraShown: false,
+      msgText: this.inputText._lastNativeText,
+    });
+    this.scrollToEnd();
+  }
+  showExtra = () => {
+    this.inputText.blur();
+    this.setState({
+      isExtraShown: !this.state.isExtraShown,
+      isEmojiShown: false,
+    });
+    this.scrollToEnd();
   }
   sendTextMsg = (event) => {
     const { text } = event.nativeEvent;
@@ -60,13 +89,15 @@ export class ChatBox extends React.Component {
     };
     this.props.action.sendTextMsg(options);
     // 触发value diff
-    setTimeout(() => {
+    InteractionManager.runAfterInteractions(() => {
+    // clearTimeout(this._scrollTimer);
       this.inputText._lastNativeText = '';
       this.setState({
         msgText: '',
       });
       this.scrollToEnd();
-    }, 0);
+    // }, 300);
+    });
   }
   sendEmojiMsg = (item) => {
     const options = {
@@ -78,6 +109,7 @@ export class ChatBox extends React.Component {
       to: this.props.options.toAccount,
     };
     this.props.action.sendCustomMsg(options);
+    this.scrollToEnd();
   }
   sendPlayMsg = () => {
     this.showExtra();
@@ -92,9 +124,21 @@ export class ChatBox extends React.Component {
       to: this.props.options.toAccount,
     };
     this.props.action.sendCustomMsg(options);
+    this.scrollToEnd();
   }
-  sendVoiceMsg = () => {
-    this.props.toast.show('Demo暂不支持发送语音消息');
+  sendVoiceMsg = (filePath, duration) => {
+    const fileOptions = {
+      scene: this.props.options.scene,
+      to: this.props.options.toAccount,
+      filePath,
+      size: 1, // stat.size,
+      md5: uuid(),
+      dur: Math.round(duration * 1000),
+      callback: () => {
+        this.scrollToEnd();
+      },
+    };
+    this.props.action.sendAudioMsg(fileOptions);
   }
   sendImgMsg = () => {
     this.showExtra();
@@ -120,8 +164,6 @@ export class ChatBox extends React.Component {
       } else if (response.customButton) {
         console.log('User tapped custom button: ', response.customButton);
       } else {
-        const fileData = `data:${response.type};base64,${response.data}`;
-        const filePath = response.uri.replace(/^file:\/\//, '');
         const fileOptions = {
           scene: this.props.options.scene,
           to: this.props.options.toAccount,
@@ -129,15 +171,20 @@ export class ChatBox extends React.Component {
           width: response.width,
           height: response.height,
           size: 1, // stat.size,
-          md5: MD5(fileData),
+          md5: uuid(), // MD5(fileData),
+          // pendingUrl: `data:${response.type};base64,${response.data}`,
+          callback: () => {
+            this.scrollToEnd();
+          },
         };
-        RNFS.stat(filePath).then((stat) => {
-          fileOptions.size = stat.size;
-        }).catch((error) => {
-          console.log(filePath, error);
-        }).finally(() => {
-          this.props.action.sendImageMsg(fileOptions);
-        });
+        this.props.action.sendImageMsg(fileOptions);
+        // RNFS.stat(filePath).then((stat) => {
+        //   fileOptions.size = stat.size;
+        // }).catch((error) => {
+        //   console.log(filePath, error);
+        // }).finally(() => {
+        //   this.props.action.sendImageMsg(fileOptions);
+        // });
       }
     });
   }
@@ -149,41 +196,13 @@ export class ChatBox extends React.Component {
     this.showExtra();
     this.props.toast.show('Demo暂不支持发送文件消息');
   }
-  showVoice = () => {
-    this.setState({
-      isTextMsg: false,
-      isExtraShown: false,
-      isEmojiShown: false,
-    });
-  }
-  hideVoice = () => {
-    this.setState({
-      isTextMsg: true,
-
-    });
-  }
-  showEmoji = () => {
-    this.inputText.blur();
-    this.setState({
-      isEmojiShown: !this.state.isEmojiShown,
-      isExtraShown: false,
-      msgText: this.inputText._lastNativeText,
-    });
-    this.scrollToEnd();
-  }
-  showExtra = () => {
-    this.inputText.blur();
-    this.setState({
-      isExtraShown: !this.state.isExtraShown,
-      isEmojiShown: false,
-    });
-    this.scrollToEnd();
-  }
   scrollToEnd = () => {
     if (this.props.chatListRef) {
-      clearTimeout(this.scrollTimer);
-      this.scrollTimer = setTimeout(() => {
-        this.props.chatListRef.getNode().scrollToEnd();
+      clearTimeout(this._scrollTimer);
+      this._scrollTimer = setTimeout(() => {
+        InteractionManager.runAfterInteractions(() => {
+          this.props.chatListRef.scrollToEnd();
+        });
       }, 500);
     }
   }
@@ -197,13 +216,15 @@ export class ChatBox extends React.Component {
             // this.setState({
             //   msgText: `${this.state.msgText}${item.key}`,
             // });
+            this.showEmoji(true);
           } else if (item.type === 'pinup') {
             this.sendEmojiMsg({
               catalog: item.name,
               chartlet: item.key,
             });
+            this.inputText.blur();
+            this.showEmoji();
           }
-          this.showEmoji();
         }}
         />
       );
@@ -294,11 +315,9 @@ export class ChatBox extends React.Component {
               style={chatStyle.iconSmall}
               onPress={this.hideVoice}
             />
-            <Button
-              buttonStyle={chatStyle.chatBtn}
-              title="长按发送语音消息"
-              titleStyle={{ color: '#999' }}
-              onLongPress={this.sendVoiceMsg}
+            <ChatAudio
+              sendAudio={this.sendVoiceMsg}
+              toast={this.props.toast}
             />
           </View>
         }

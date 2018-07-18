@@ -19,6 +19,8 @@
     - (首次运行需要)根据提示，需要额外安装sdk-24, sdk-25, sdk-26的版本库(如果之前没有装过)
     - 打开安卓模拟器(android-studio右上角绿色三角形符号)
     - 控制台执行 `react-native run-android`
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/android-studio.png)
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/android-tools.png)
 6. 控制台日志输出：
   - iOS环境： `react-native log-ios`
   - 安卓环境： `react-native log-android`
@@ -300,6 +302,10 @@ RN-SDK同时支持含数据库和不含数据库的使用方式，根据开发�
   - https://github.com/crazycodeboy/react-native-easy-toast
 - `react-native-image-picker` 图片选择及摄像头拍照
   - https://www.npmjs.com/package/react-native-image-picker
+- `react-native-audio` 语音录制
+  - https://www.npmjs.com/package/react-native-audio
+- `react-native-sound` 语音播放
+  - https://www.npmjs.com/package/react-native-sound
 - `react-native-fs` 获取本地文件信息
   - https://www.npmjs.com/package/react-native-fs
 - `react-native-video` 视频播放器,demo未实现
@@ -318,3 +324,10 @@ RN-SDK同时支持含数据库和不含数据库的使用方式，根据开发�
   - https://stackoverflow.com/questions/45954209/issues-with-resources-generated-by-react-in-android-studio-3
 
 
+## Demo展示
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/login.png)
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/session.png)
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/chat.png)
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/contact.png)
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/friends.png)
+![](https://yx-web.nos-hz.163yun.com/demo/reactnative/namecard.png)
